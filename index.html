@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Class Attendance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #f0f2f5; padding: 20px; }
+        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #reader { width: 100%; margin-top: 10px; }
+        .hidden { display: none; }
+        .success { color: green; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📝 Mark Attendance</h2>
+    
+    <div id="loginSection">
+        <input type="text" id="studentName" placeholder="Full Name" required>
+        <input type="text" id="rollNumber" placeholder="Roll Number" required>
+        <input type="text" id="secretCode" placeholder="Today's Secret Code (from Board)" required>
+        <button onclick="startScanning()">Next: Scan QR</button>
+    </div>
+
+    <div id="scanSection" class="hidden">
+        <p>Scan the Class QR Code</p>
+        <div id="reader"></div>
+        <button onclick="goBack()" style="background-color: #6c757d; margin-top: 10px;">Go Back</button>
+    </div>
+
+    <div id="message"></div>
+</div>
+
+<script>
+    // PASTE YOUR GOOGLE SCRIPT URL INSIDE THE QUOTES BELOW:
+    const googleScriptURL = "https://script.google.com/macros/s/AKfycbwPk8Z3pTj7r0lty0imIvwX_w5CdLBGPNf7WHZHL1jRrWCrzRjmAhvjvuJ-mTljqHyP/exec"; 
+
+    function startScanning() {
+        const name = document.getElementById("studentName").value;
+        const roll = document.getElementById("rollNumber").value;
+        const code = document.getElementById("secretCode").value;
+
+        if (name === "" || roll === "" || code === "") {
+            alert("Please fill all fields, including the Secret Code!");
+            return;
+        }
+
+        // Hide login, show scanner
+        document.getElementById("loginSection").classList.add("hidden");
+        document.getElementById("scanSection").classList.remove("hidden");
+
+        // Start Camera
+        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+    }
+
+    function onScanSuccess(decodedText) {
+        // Stop scanning
+        document.getElementById("scanSection").classList.add("hidden");
+        document.getElementById("message").innerText = "⏳ Sending attendance...";
+
+        // Send data to Google Sheet
+        const data = {
+            name: document.getElementById("studentName").value,
+            roll: document.getElementById("rollNumber").value,
+            code: document.getElementById("secretCode").value
+        };
+
+        fetch(googleScriptURL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8",
+            },
+            body: JSON.stringify(data)
+        }).then(() => {
+            document.getElementById("message").innerHTML = "<h3 class='success'>✅ Attendance Marked!</h3>";
+        }).catch(err => {
+            document.getElementById("message").innerText = "❌ Connection Error";
+        });
+    } // <--- THIS BRACE WAS MISSING
+
+    function goBack() {
+        document.getElementById("scanSection").classList.add("hidden");
+        document.getElementById("loginSection").classList.remove("hidden");
+        location.reload(); 
+    }
+</script>
+
+</body>
+
+</html>
