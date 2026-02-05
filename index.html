@@ -23,7 +23,7 @@
     <div id="loginSection">
         <input type="text" id="studentName" placeholder="Full Name" required>
         <input type="text" id="rollNumber" placeholder="Roll Number" required>
-        <input type="text" id="secretCode" placeholder="Today's Secret Code (from Board)" required>
+        <input type="text" id="secretCode" placeholder="Today's Secret Code" required>
         <button onclick="startScanning()">Next: Scan QR</button>
     </div>
 
@@ -37,61 +37,57 @@
 </div>
 
 <script>
-    // PASTE YOUR GOOGLE SCRIPT URL INSIDE THE QUOTES BELOW:
-    const googleScriptURL = "https://script.google.com/macros/s/AKfycbwPk8Z3pTj7r0lty0imIvwX_w5CdLBGPNf7WHZHL1jRrWCrzRjmAhvjvuJ-mTljqHyP/exec"; 
+    // PASTE YOUR GOOGLE SCRIPT URL HERE
+    const googleScriptURL = "https://script.google.com/macros/s/AKfycbybaWnyLyAD3AIcxYQBbY3B9r_DIpRh9oPdPeN-jG5XP6gDQ2_F1f34zK-9x3bhVLkD/exec"; 
+
+    let html5QrcodeScanner;
 
     function startScanning() {
         const name = document.getElementById("studentName").value;
         const roll = document.getElementById("rollNumber").value;
         const code = document.getElementById("secretCode").value;
 
-        if (name === "" || roll === "" || code === "") {
-            alert("Please fill all fields, including the Secret Code!");
+        if (!name || !roll || !code) {
+            alert("Please fill all fields!");
             return;
         }
 
-        // Hide login, show scanner
         document.getElementById("loginSection").classList.add("hidden");
         document.getElementById("scanSection").classList.remove("hidden");
 
-        // Start Camera
-        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
         html5QrcodeScanner.render(onScanSuccess);
     }
 
     function onScanSuccess(decodedText) {
-        // Stop scanning
+        // Stop scanning immediately
+        html5QrcodeScanner.clear(); 
         document.getElementById("scanSection").classList.add("hidden");
         document.getElementById("message").innerText = "⏳ Sending attendance...";
 
-        // Send data to Google Sheet
-        const data = {
-            name: document.getElementById("studentName").value,
-            roll: document.getElementById("rollNumber").value,
-            code: document.getElementById("secretCode").value
-        };
+        const formData = new FormData();
+        formData.append("name", document.getElementById("studentName").value);
+        formData.append("roll", document.getElementById("rollNumber").value);
+        formData.append("code", document.getElementById("secretCode").value);
 
+        // We use 'no-cors' because Google Scripts redirect, which usually blocks standard fetch
         fetch(googleScriptURL, {
             method: "POST",
-            mode: "no-cors",
-            headers: {
-                "Content-Type": "text/plain;charset=utf-8",
-            },
-            body: JSON.stringify(data)
+            mode: "no-cors", 
+            body: formData
         }).then(() => {
-            document.getElementById("message").innerHTML = "<h3 class='success'>✅ Attendance Marked!</h3>";
+            document.getElementById("message").innerHTML = "<h3 class='success'>✅ Submission Sent!<br><small>Check with teacher to confirm.</small></h3>";
         }).catch(err => {
             document.getElementById("message").innerText = "❌ Connection Error";
+            console.error(err);
         });
-    } // <--- THIS BRACE WAS MISSING
+    }
 
     function goBack() {
+        if(html5QrcodeScanner) html5QrcodeScanner.clear();
         document.getElementById("scanSection").classList.add("hidden");
         document.getElementById("loginSection").classList.remove("hidden");
-        location.reload(); 
     }
 </script>
-
 </body>
-
 </html>
